@@ -244,6 +244,18 @@ mod evm_functions {
     pub fn wbtc(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::wbtc(value)
     }
+
+    /// Returns the Keccak-256 hash of a UTF-8 string as a `0x`-prefixed hex string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let hash = keccak256("hello"); // "0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8"
+    /// ```
+    #[rhai_fn(name = "keccak256")]
+    pub fn keccak256_str(value: String) -> String {
+        alloy_primitives::keccak256(value.as_bytes()).to_string()
+    }
 }
 
 def_package! {
@@ -259,6 +271,23 @@ mod tests {
     use alloy_primitives::U256;
 
     use super::*;
+
+    #[test]
+    fn test_keccak256() {
+        // keccak256("") is a well-known constant
+        let empty = evm_functions::keccak256_str(String::new());
+        assert_eq!(
+            empty,
+            "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+        );
+
+        // keccak256("hello")
+        let hello = evm_functions::keccak256_str("hello".to_string());
+        assert_eq!(
+            hello,
+            "0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8"
+        );
+    }
 
     #[test]
     fn test_dynamic_to_decimal() {

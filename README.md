@@ -18,6 +18,7 @@ Working with EVM-based applications requires handling high-precision integers (e
 ## Features
 
 - **Denomination Constructors**: `ether`, `gwei`, `wei`, `usdc`, `usdt`, `wbtc`, and generic `decimals`.
+- **Hashing**: `keccak256(string)` returns a `0x`-prefixed hex string of the Keccak-256 digest.
 - **Alloy Interop**: Convert `U256` and `I256` directly to Rhai `Dynamic` values.
 
 ## Installation
@@ -83,6 +84,11 @@ let amount = ether(1.23);      // 1230000000000000000
 let small = gwei(10);          // 10000000000
 let stable = usdc(500);        // 500000000
 let custom = decimals(1.5, 2); // 150
+```
+
+#### Hashing
+```js
+let hash = keccak256("hello"); // "0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8"
 ```
 
 #### Alloy Interop (Host Side)
