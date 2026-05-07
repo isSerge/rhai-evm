@@ -249,8 +249,6 @@ mod evm_functions {
 def_package! {
     /// EVM token denomination helpers for Rhai scripts: `ether`, `gwei`,
     /// `wei`, `usdc`, `usdt`, `wbtc`, and the generic `decimals` constructor.
-    /// Also includes [`BigIntPackage`] so registering `EvmPackage` alone is
-    /// sufficient for standalone use.
     pub EvmPackage(lib) {
         combine_with_exported_module!(lib, "evm", evm_functions);
     }
