@@ -9,9 +9,9 @@ A [Rhai](https://rhai.rs/) scripting engine plugin providing EVM token denominat
 
 ## Why this exists
 
-Working with EVM-based applications requires handling high-precision integers (e.g., 1 ETH = $10^{18}$ Wei). Rhai's default integer types (64-bit or 128-bit) are often insufficient, and floating-point math leads to precision loss.
+Working with EVM-based applications requires handling high-precision integers (e.g., 1 ETH = $10^{18}$ Wei). Rhai's default integer types (64-bit) are often insufficient, and floating-point math leads to precision loss.
 
-`rhai-evm` complements `rhai-bigint` by providing:
+`rhai-evm` complements [rhai-bigint](https://crates.io/crates/rhai-bigint) by providing:
 1.  **Denomination Helpers**: Ergonomic functions like `ether()`, `gwei()`, and `usdc()` to handle scaling and precision.
 2.  **Type Conversions**: Lossless conversion from `alloy-primitives` types (`U256`, `I256`) into `BigInt` values.
 
