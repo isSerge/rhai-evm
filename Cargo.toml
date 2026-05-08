@@ -1,6 +1,6 @@
 [package]
 name = "rhai-evm"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Rhai plugin providing EVM token denomination helpers and primitive type conversions"
 license = "MIT"
@@ -17,7 +17,7 @@ rhai = {"version" = "1.22.2", features = ["decimal"]}
 rust_decimal = { version = "1.37.2", features = ["maths"] }
 
 [dev-dependencies]
-rhai-bigint = "0.1.0"
+rhai-bigint = "0.1.1"
 
 [features]
 default = []

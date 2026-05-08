@@ -19,6 +19,7 @@ Working with EVM-based applications requires handling high-precision integers (e
 
 - **Denomination Constructors**: `ether`, `gwei`, `wei`, `usdc`, `usdt`, `wbtc`, and generic `decimals`.
 - **Hashing**: `keccak256(string)` returns a `0x`-prefixed hex string of the Keccak-256 digest.
+- **Address Utilities**: `is_address` validates an address string; `to_checksum` returns its EIP-55 checksum form.
 - **Alloy Interop**: Convert `U256` and `I256` directly to Rhai `Dynamic` values.
 
 ## Installation
@@ -89,6 +90,15 @@ let custom = decimals(1.5, 2); // 150
 #### Hashing
 ```js
 let hash = keccak256("hello"); // "0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8"
+```
+
+#### Address Utilities
+```js
+is_address("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045") // true
+is_address("not-an-address")                              // false
+
+let addr = to_checksum("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
+// "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
 ```
 
 #### Alloy Interop (Host Side)
