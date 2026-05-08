@@ -1,14 +1,19 @@
 #![doc = include_str!("../README.md")]
 
-//! EVM token denomination helpers and primitive type conversions for Rhai.
+//! EVM token denomination helpers, hashing, address utilities, and primitive
+//! type conversions for Rhai.
 //!
-//! Provides [`EvmPackage`] (via `def_package!`) wrapping `ether`, `gwei`,
-//! `wei`, `usdc`, `usdt`, `wbtc`, and `decimals` constructors, plus the
-//! `u256_to_bigint_dynamic` / `i256_to_bigint_dynamic` helpers used by the
-//! host crate to convert alloy primitives into Rhai `Dynamic` `BigInt` values.
+//! Provides [`EvmPackage`] (via `def_package!`) which exports:
+//! - Denomination constructors: `ether`, `gwei`, `wei`, `usdc`, `usdt`,
+//!   `wbtc`, and the generic `decimals`.
+//! - Hashing: `keccak256`.
+//! - Address utilities: `is_address`, `to_checksum`.
 //!
-//! Note: This package relies on `BigInt` under the hood. You should also
-//! register `BigIntPackage` from the `rhai-bigint` crate in your engine.
+//! Also exposes [`u256_to_bigint_dynamic`] and [`i256_to_bigint_dynamic`] for
+//! host-side conversion of `alloy-primitives` types into Rhai `Dynamic` values.
+//!
+//! > **Note:** `EvmPackage` does not bundle `rhai-bigint`. Register
+//! > `BigIntPackage` alongside `EvmPackage` in your engine.
 
 use alloy_primitives::{I256, Sign as AlloySign, U256};
 use num_bigint::{BigInt, Sign as BigIntSign};
@@ -36,24 +41,6 @@ pub fn i256_to_bigint_dynamic(value: I256) -> Dynamic {
     Dynamic::from(BigInt::from_bytes_be(rhai_sign, &bytes))
 }
 
-/// Scales a `Dynamic` value by a specified number of decimal places.
-///
-/// This function is used to convert a human-readable number (like `1.23`)
-/// into its integer representation based on the token's decimals. For example,
-/// a token with 2 decimal places would convert `1.23` to `123`.
-///
-/// # Arguments
-///
-/// * `value` - The `Dynamic` value to scale. Can be an integer, float, or
-///   string.
-/// * `decimals` - The number of decimal places to scale by. Must be
-///   non-negative.
-///
-/// # Example
-///
-/// ```rhai
-/// let amount = decimals(1.23, 2); // returns 123
-/// ```
 fn decimals(value: Dynamic, decimals: i64) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     if decimals >= 0 {
         scale_by_decimals(value, decimals as u32)
@@ -62,98 +49,26 @@ fn decimals(value: Dynamic, decimals: i64) -> Result<BigInt, Box<rhai::EvalAltRe
     }
 }
 
-/// Converts a value to wei, assuming it is denominated in ether (18 decimals).
-///
-/// # Arguments
-///
-/// * `value` - The value in ether to convert.
-///
-/// # Example
-///
-/// ```rhai
-/// let one_ether_in_wei = ether(1); // returns 1000000000000000000
-/// ```
 fn ether(value: Dynamic) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     scale_by_decimals(value, 18)
 }
 
-/// Converts a value to wei, assuming it is denominated in gwei (9 decimals).
-///
-/// # Arguments
-///
-/// * `value` - The value in gwei to convert.
-///
-/// # Example
-///
-/// ```rhai
-/// let one_gwei_in_wei = gwei(1); // returns 1000000000
-/// ```
 fn gwei(value: Dynamic) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     scale_by_decimals(value, 9)
 }
 
-/// Converts a value to wei (0 decimals).
-///
-/// Since wei is the base unit, this function effectively truncates any
-/// fractional part of the input value.
-///
-/// # Arguments
-///
-/// * `value` - The value in wei to convert.
-///
-/// # Example
-///
-/// ```rhai
-/// let amount = wei(1.9); // returns 1
-/// ```
 fn wei(value: Dynamic) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     scale_by_decimals(value, 0)
 }
 
-/// Converts a value to its atomic unit, assuming it is denominated in USDC (6
-/// decimals).
-///
-/// # Arguments
-///
-/// * `value` - The value in USDC to convert.
-///
-/// # Example
-///
-/// ```rhai
-/// let one_usdc = usdc(1); // returns 1000000
-/// ```
 fn usdc(value: Dynamic) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     scale_by_decimals(value, 6)
 }
 
-/// Converts a value to its atomic unit, assuming it is denominated in USDT (6
-/// decimals).
-///
-/// # Arguments
-///
-/// * `value` - The value in USDT to convert.
-///
-/// # Example
-///
-/// ```rhai
-/// let one_usdt = usdt(1); // returns 1000000
-/// ```
 fn usdt(value: Dynamic) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     scale_by_decimals(value, 6)
 }
 
-/// Converts a value to its atomic unit, assuming it is denominated in WBTC (8
-/// decimals).
-///
-/// # Arguments
-///
-/// * `value` - The value in WBTC to convert.
-///
-/// # Example
-///
-/// ```rhai
-/// let one_wbtc = wbtc(1); // returns 100000000
-/// ```
 fn wbtc(value: Dynamic) -> Result<BigInt, Box<rhai::EvalAltResult>> {
     scale_by_decimals(value, 8)
 }
@@ -210,36 +125,101 @@ mod evm_functions {
     use num_bigint::BigInt;
     use rhai::{Dynamic, EvalAltResult};
 
+    /// Scales a value by a given number of decimal places, returning a `BigInt`.
+    ///
+    /// The `value` argument can be an integer, float, or string. `d` must be
+    /// non-negative.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let amount = decimals(1.23, 2); // 123
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn decimals(value: Dynamic, d: i64) -> Result<BigInt, Box<EvalAltResult>> {
         super::decimals(value, d)
     }
 
+    /// Converts a value denominated in ether to its wei equivalent (×10¹⁸).
+    ///
+    /// The `value` argument can be an integer, float, or string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let one_ether_in_wei = ether(1);   // 1000000000000000000
+    /// let half_ether      = ether(0.5);  // 500000000000000000
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn ether(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::ether(value)
     }
 
+    /// Converts a value denominated in gwei to its wei equivalent (×10⁹).
+    ///
+    /// The `value` argument can be an integer, float, or string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let one_gwei_in_wei = gwei(1); // 1000000000
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn gwei(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::gwei(value)
     }
 
+    /// Parses a value as a whole number of wei, truncating any fractional part.
+    ///
+    /// The `value` argument can be an integer, float, or string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let amount = wei(1.9); // 1
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn wei(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::wei(value)
     }
 
+    /// Converts a value denominated in USDC to its atomic unit equivalent (×10⁶).
+    ///
+    /// The `value` argument can be an integer, float, or string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let one_usdc = usdc(1); // 1000000
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn usdc(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::usdc(value)
     }
 
+    /// Converts a value denominated in USDT to its atomic unit equivalent (×10⁶).
+    ///
+    /// The `value` argument can be an integer, float, or string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let one_usdt = usdt(1); // 1000000
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn usdt(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::usdt(value)
     }
 
+    /// Converts a value denominated in WBTC to its atomic unit equivalent (×10⁸).
+    ///
+    /// The `value` argument can be an integer, float, or string.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let one_wbtc = wbtc(1); // 100000000
+    /// ```
     #[rhai_fn(return_raw)]
     pub fn wbtc(value: Dynamic) -> Result<BigInt, Box<EvalAltResult>> {
         super::wbtc(value)
@@ -256,11 +236,48 @@ mod evm_functions {
     pub fn keccak256_str(value: String) -> String {
         alloy_primitives::keccak256(value.as_bytes()).to_string()
     }
+
+    /// Returns `true` if the string is a valid EVM address (with or without checksum).
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// is_address("0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045")  // true
+    /// is_address("not-an-address")                              // false
+    /// ```
+    #[rhai_fn(name = "is_address")]
+    pub fn is_address(value: String) -> bool {
+        value.parse::<alloy_primitives::Address>().is_ok()
+    }
+
+    /// Parses an EVM address string and returns its EIP-55 checksum form.
+    ///
+    /// Returns an error if the input is not a valid EVM address.
+    ///
+    /// # Example
+    ///
+    /// ```rhai
+    /// let addr = to_checksum("0xd8da6bf26964af9d7eed9e03e53415d37aa96045");
+    /// // "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"
+    /// ```
+    #[rhai_fn(name = "to_checksum", return_raw)]
+    pub fn to_checksum(value: String) -> Result<String, Box<rhai::EvalAltResult>> {
+        value
+            .parse::<alloy_primitives::Address>()
+            .map(|a| a.to_checksum(None))
+            .map_err(|err| format!("Invalid EVM address '{value}': {err}").into())
+    }
 }
 
 def_package! {
-    /// EVM token denomination helpers for Rhai scripts: `ether`, `gwei`,
-    /// `wei`, `usdc`, `usdt`, `wbtc`, and the generic `decimals` constructor.
+    /// Rhai package bundling all EVM scripting utilities.
+    ///
+    /// Exports denomination constructors (`ether`, `gwei`, `wei`, `usdc`,
+    /// `usdt`, `wbtc`, `decimals`), the `keccak256` hash function, and address
+    /// helpers (`is_address`, `to_checksum`).
+    ///
+    /// Register this alongside [`rhai_bigint::BigIntPackage`] for a complete
+    /// EVM scripting environment.
     pub EvmPackage(lib) {
         combine_with_exported_module!(lib, "evm", evm_functions);
     }
@@ -287,6 +304,30 @@ mod tests {
             hello,
             "0x1c8aff950685c2ed4bc3174f3472287b56d9517b9c948127319a09a7a36deac8"
         );
+    }
+
+    #[test]
+    fn test_is_address() {
+        assert!(evm_functions::is_address(
+            "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045".to_string()
+        ));
+        // lowercase (no checksum) is also valid
+        assert!(evm_functions::is_address(
+            "0xd8da6bf26964af9d7eed9e03e53415d37aa96045".to_string()
+        ));
+        assert!(!evm_functions::is_address("not-an-address".to_string()));
+        assert!(!evm_functions::is_address(String::new()));
+    }
+
+    #[test]
+    fn test_to_checksum() {
+        let checksummed =
+            evm_functions::to_checksum("0xd8da6bf26964af9d7eed9e03e53415d37aa96045".to_string())
+                .unwrap();
+        assert_eq!(checksummed, "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+
+        let err = evm_functions::to_checksum("not-an-address".to_string());
+        assert!(err.is_err());
     }
 
     #[test]
