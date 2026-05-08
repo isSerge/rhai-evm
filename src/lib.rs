@@ -1,14 +1,19 @@
 #![doc = include_str!("../README.md")]
 
-//! EVM token denomination helpers and primitive type conversions for Rhai.
+//! EVM token denomination helpers, hashing, address utilities, and primitive
+//! type conversions for Rhai.
 //!
-//! Provides [`EvmPackage`] (via `def_package!`) wrapping `ether`, `gwei`,
-//! `wei`, `usdc`, `usdt`, `wbtc`, and `decimals` constructors, plus the
-//! `u256_to_bigint_dynamic` / `i256_to_bigint_dynamic` helpers used by the
-//! host crate to convert alloy primitives into Rhai `Dynamic` `BigInt` values.
+//! Provides [`EvmPackage`] (via `def_package!`) which exports:
+//! - Denomination constructors: `ether`, `gwei`, `wei`, `usdc`, `usdt`,
+//!   `wbtc`, and the generic `decimals`.
+//! - Hashing: `keccak256`.
+//! - Address utilities: `is_address`, `to_checksum`.
 //!
-//! Note: This package relies on `BigInt` under the hood. You should also
-//! register `BigIntPackage` from the `rhai-bigint` crate in your engine.
+//! Also exposes [`u256_to_bigint_dynamic`] and [`i256_to_bigint_dynamic`] for
+//! host-side conversion of `alloy-primitives` types into Rhai `Dynamic` values.
+//!
+//! > **Note:** `EvmPackage` does not bundle `rhai-bigint`. Register
+//! > `BigIntPackage` alongside `EvmPackage` in your engine.
 
 use alloy_primitives::{I256, Sign as AlloySign, U256};
 use num_bigint::{BigInt, Sign as BigIntSign};
@@ -265,8 +270,14 @@ mod evm_functions {
 }
 
 def_package! {
-    /// EVM token denomination helpers for Rhai scripts: `ether`, `gwei`,
-    /// `wei`, `usdc`, `usdt`, `wbtc`, and the generic `decimals` constructor.
+    /// Rhai package bundling all EVM scripting utilities.
+    ///
+    /// Exports denomination constructors (`ether`, `gwei`, `wei`, `usdc`,
+    /// `usdt`, `wbtc`, `decimals`), the `keccak256` hash function, and address
+    /// helpers (`is_address`, `to_checksum`).
+    ///
+    /// Register this alongside [`rhai_bigint::BigIntPackage`] for a complete
+    /// EVM scripting environment.
     pub EvmPackage(lib) {
         combine_with_exported_module!(lib, "evm", evm_functions);
     }
