@@ -260,7 +260,7 @@ mod evm_functions {
         value
             .parse::<alloy_primitives::Address>()
             .map(|a| a.to_checksum(None))
-            .map_err(|_| format!("Invalid EVM address: '{value}'").into())
+            .map_err(|err| format!("Invalid EVM address '{value}': {err}").into())
     }
 }
 
