@@ -67,7 +67,7 @@ fn main() {
         let price = ether(1.5); // 1.5 ETH in Wei
         let gas = gwei(30);     // 30 Gwei in Wei
         
-        let threshold = bigint("1000000000"); 
+        let threshold = parse_bigint("1000000000"); 
 
         price > gas && price > threshold
     "#;

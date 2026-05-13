@@ -17,7 +17,7 @@ rhai = {"version" = "1.22.2", features = ["decimal"]}
 rust_decimal = { version = "1.37.2", features = ["maths"] }
 
 [dev-dependencies]
-rhai-bigint = "0.1.1"
+rhai-bigint = "0.1.6"
 
 [features]
 default = []
